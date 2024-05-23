@@ -1,3 +1,4 @@
+const propertyModel = require("../models/propertyModel")
 const userModel = require("../models/userModel")
 const bcrypt = require('bcryptjs')
 
@@ -61,7 +62,144 @@ const login = async (request, response) => {
     }
 }
 
+const addANewProperty = async (request, response) => {
+    const {
+        title, description, address, type, price, size, floor, totalFloor, preferredTenant, parkingType, furnished, bhkType, bathrooms, ageOfProperty, waterSupply, isNonVegAllowed, listedDate, availability, availableFrom, nearBySchool, nearByCollege, nearByHospital,
+    } = request.body
+    const {filename} = request.file || request.body.images
+    const owner = request.user._id
+    console.log(filename)
+
+    try{
+        const image = '/public/images/' + filename
+        const newProperty = new propertyModel({
+            title, 
+            description, 
+            address, 
+            type, 
+            price, 
+            size, 
+            floor, 
+            totalFloor, 
+            preferredTenant, 
+            parkingType, 
+            furnished, 
+            bhkType, 
+            bathrooms, 
+            ageOfProperty, 
+            waterSupply, 
+            isNonVegAllowed, 
+            owner, 
+            listedDate, 
+            availability, 
+            availableFrom,
+            nearBySchool,
+            nearByCollege,
+            nearByHospital,
+            image
+        })
+
+        // console.log(newProperty)
+        // await newProperty.save()
+
+        response.status(201).send({ message: 'Property added successfully'})
+    }
+    catch(error) {
+        response.status(500).send({ message: error.message})
+    }
+}
+
+const editPropertyDetails = async (request, response) => {
+    const { _id } = request.body;
+    const propertyDetail = request.body || null;
+    const { filename } = request.file || null;
+
+    try {
+        const property = await propertyModel.findById(_id);
+        if (!property) {
+            return response.status(404).send({ message: 'Property not found' });
+        }
+
+        if (propertyDetail) {
+            Object.keys(propertyDetail).forEach(detail => {
+                if (propertyDetail[detail] !== undefined) {
+                    property[detail] = propertyDetail[detail];
+                }
+            });
+        }
+
+        if (filename) {
+            property.images.push(filename);
+        }
+
+        await property.save();
+
+        response.status(200).send({ message: 'Property updated successfully' });
+    } catch (error) {
+        response.status(500).json({ message: error.message });
+    }
+};
+
+
+const deleteTheProperty = async (request, response) => {
+    const { _id } = request.body
+    try {
+        const property = await userModel.findOne({ _id })
+        if(property) {
+            await propertyModel.deleteOne({ _id: id })
+            response.status(200).send({ message: 'Property deleted successfully'})
+        }
+        else {
+            response.status(404).send({status: 'error', code: 404, message: 'Property not found'})
+        }
+
+    }
+    catch(error) {
+        response.status(500).json({ message: error.message,})
+    
+    }
+}
+
+const searchTheProperty = async (request, response) => {
+    const { city, roomType, bhkType } = request.query
+    try{
+        const matchedProperty = await propertyModel.aggregate([
+            {
+                $match: {
+                    "address.city" : { $regex: new RegExp(city, 'i') },
+                    "type": { $regex: new RegExp(roomType, 'i') },
+                    "bhkType": bhkType
+                }
+            }
+        ])
+
+        if(!matchedProperty || matchedProperty.length == 0) {
+            return response.status(404).send({ message: "No property found in the searched location"})
+        }
+
+        response.status(200).send({ data: matchedProperty, message: "Properties found"})
+    }
+    catch(error) {
+        response.status(500).send({ message: error.message })
+    }
+}
+
+const searchThePropertyWithFilters = async (request, response) => {
+
+    const { minPrice } = request.query || 0
+    const { maxPrice } = request.query || 500000
+
+
+}
+
 module.exports = {
     signup,
-    login
+    login,
+
+    addANewProperty,
+    editPropertyDetails,
+    deleteTheProperty,
+
+    searchTheProperty,
+    searchThePropertyWithFilters
 }

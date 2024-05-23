@@ -2,8 +2,11 @@ const express = require('express')
 const router = express.Router()
 
 const { check } = require('express-validator')
-const { signup, login } = require('../controllers/userController')
+const { signup, login, addANewProperty, editPropertyDetails, deleteTheProperty, searchTheProperty, searchThePropertyWithFilters } = require('../controllers/userController')
+const { verifyUser, verifySeller, verifyBuyer } = require('../middleware/verify')
+const upload = require('../middleware/imageUpload')
 
+// Signup route
 router.post(
                 '/signup',
             
@@ -30,7 +33,8 @@ router.post(
                 signup
 )
 
-            router.post(
+// Login route
+router.post(
                 '/login',
 
                 check('email')
@@ -44,6 +48,54 @@ router.post(
                     .withMessage('Password length is at least 8 character'),
 
                 login
+)
+
+// Seller Adds New property 
+router.post(
+                '/add',
+                
+                upload.single('images'),
+
+                verifyUser,
+                verifySeller,
+                addANewProperty
+)
+
+// Seller Edits their property
+router.patch(
+                '/edit',
+
+                upload.single('images'),
+                
+                verifyUser,
+                // verifySeller,
+                editPropertyDetails
+)
+
+// Seller Delete their property 
+router.delete(
+                '/remove',
+
+                verifyUser,
+                // verifySeller,
+                deleteTheProperty
+)
+
+// Buyer Searches the property 
+router.get(
+                '/property/search', 
+
+                verifyUser,
+                // verifyBuyer,
+                searchTheProperty
+)
+
+router.get(
+                '/property/search/advance',
+
+                verifyUser,
+                // verifySeller,
+                searchThePropertyWithFilters
 )
 
 module.exports = router
